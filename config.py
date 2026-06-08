@@ -14,7 +14,7 @@ DOCS_FOLDER = os.path.join(PROJECT_ROOT, "docs")
 VECTOR_STORE_PATH = os.path.join(PROJECT_ROOT, "vector_store")
 
 # Chroma数据库名称
-CHROMA_DB_NAME = "rag knowledge base"
+CHROMA_DB_NAME = "rag_knowledge_base"
 
 # 文本分块参数
 CHUNK_SIZE = 1000
@@ -22,7 +22,7 @@ CHUNK_OVERLAP = 200
 
 # Ollama配置
 OLLAMA_BASE_URL = "http://localhost:11434"
-LLM_MODEL = "deepseek-r1:7b"
+LLM_MODEL = "phi3:mini"
 EMBED_MODEL = "nomic-embed-text"
 
 # 检索参数

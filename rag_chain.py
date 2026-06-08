@@ -6,11 +6,10 @@ RAG问答链模块 - RAG智能问答系统
 
 from typing import Optional, List, Dict
 from langchain_ollama import ChatOllama
-from langchain.chains import ConversationalRetrievalChain
-from langchain.chains.retrieval import create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain_classic.chains.retrieval import create_retrieval_chain
+from langchain_classic.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.documents import Document
-from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 import config
 from vector_store import VectorStoreManager
@@ -36,12 +35,9 @@ class RAGQAChain:
         print(f"大模型初始化成功: {config.LLM_MODEL}")
         return self.llm
 
-    def create_qa_chain(self) -> ConversationalRetrievalChain:
+    def create_qa_chain(self):
         """
         创建问答链
-
-        Returns:
-            ConversationalRetrievalChain实例
         """
         if self.llm is None:
             self.initialize_llm()
@@ -49,21 +45,24 @@ class RAGQAChain:
         # 获取检索器
         retriever = self.vector_store_manager.get_retriever()
 
-        # 构建提示词
-        system_prompt = SystemMessagePromptTemplate.from_template(config.SYSTEM_PROMPT)
-        human_prompt = HumanMessagePromptTemplate.from_template(
-            "请根据以下参考文档回答问题。\n\n"
-            "参考文档：\n"
-            "{context}\n\n"
-            "用户问题：{input}"
-        )
-        prompt = ChatPromptTemplate.from_messages([system_prompt, human_prompt])
+        # 构建提示词（包含context变量）
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", config.SYSTEM_PROMPT),
+            MessagesPlaceholder("chat_history"),
+            ("human", """请基于以下参考文档回答用户问题。
+
+参考文档：
+{context}
+
+用户问题：{input}
+
+请根据参考文档回答：""")
+        ])
 
         # 创建文档组合链
         combine_docs_chain = create_stuff_documents_chain(
             llm=self.llm,
-            prompt=prompt,
-            document_prompt=HumanMessagePromptTemplate.from_template("{page_content}")
+            prompt=prompt
         )
 
         # 创建检索链
@@ -79,16 +78,16 @@ class RAGQAChain:
         self,
         question: str,
         chat_history: Optional[List[tuple]] = None
-    ) -> Dict:
+    ) -> str:
         """
         回答问题
 
         Args:
             question: 用户问题
-            chat_history: 对话历史，格式为[(问题, 回答), ...]
+            chat_history: 对话历史
 
         Returns:
-            包含答案和上下文的字典
+            答案字符串
         """
         if self.qa_chain is None:
             self.create_qa_chain()
@@ -97,19 +96,16 @@ class RAGQAChain:
         formatted_history = []
         if chat_history:
             for q, a in chat_history:
-                formatted_history.append(f"用户：{q}\n助手：{a}")
+                formatted_history.append({"role": "human", "content": q})
+                formatted_history.append({"role": "assistant", "content": a})
 
         # 调用问答链
         result = self.qa_chain.invoke({
             "input": question,
-            "chat_history": formatted_history if formatted_history else []
+            "chat_history": formatted_history
         })
 
-        return {
-            "answer": result.get("answer", ""),
-            "context": result.get("context", []),
-            "source_documents": result.get("source_documents", [])
-        }
+        return result.get("answer", "")
 
     def get_relevant_documents(self, question: str) -> List[Document]:
         """
@@ -172,13 +168,11 @@ def test_qa():
         print(f"\n问题: {question}")
         print("-" * 40)
         try:
-            result = qa_chain.answer(question)
-            answer = result["answer"]
+            answer = qa_chain.answer(question)
             # 限制输出长度
             if len(answer) > 500:
                 answer = answer[:500] + "..."
             print(f"答案: {answer}")
-            print(f"参考文档数: {len(result['source_documents'])}")
         except Exception as e:
             print(f"回答失败: {str(e)}")
 
@@ -190,8 +184,7 @@ def test_qa():
         print(f"\n问题: {question}")
         print("-" * 40)
         try:
-            result = qa_chain.answer(question)
-            answer = result["answer"]
+            answer = qa_chain.answer(question)
             if len(answer) > 500:
                 answer = answer[:500] + "..."
             print(f"答案: {answer}")

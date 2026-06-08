@@ -31,11 +31,18 @@ class VectorStoreManager:
         """
         self.persist_directory = persist_directory or config.VECTOR_STORE_PATH
         self.collection_name = collection_name or config.CHROMA_DB_NAME
-        self.embeddings = OllamaEmbeddings(
-            model=config.EMBED_MODEL,
-            base_url=config.OLLAMA_BASE_URL
-        )
+        self._embeddings = None
         self._vectorstore = None
+    
+    @property
+    def embeddings(self):
+        """延迟初始化嵌入模型"""
+        if self._embeddings is None:
+            self._embeddings = OllamaEmbeddings(
+                model=config.EMBED_MODEL,
+                base_url=config.OLLAMA_BASE_URL
+            )
+        return self._embeddings
 
     def create_vectorstore(self, documents: List[Document]) -> Chroma:
         """
@@ -166,6 +173,16 @@ class VectorStoreManager:
         else:
             vectorstore.add_documents(documents)
             print(f"已添加 {len(documents)} 个文档到向量数据库")
+
+    def clear_vectorstore(self):
+        """
+        清除向量数据库
+        """
+        if os.path.exists(self.persist_directory):
+            shutil.rmtree(self.persist_directory)
+            print(f"已清除向量数据库: {self.persist_directory}")
+        self._vectorstore = None
+        self._embeddings = None
 
 
 def test_retrieval():
