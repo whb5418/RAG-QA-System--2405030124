@@ -48,12 +48,17 @@ class DocumentLoader:
 
         if file_extension == ".pdf":
             loader = PyPDFLoader(file_path)
+            documents = loader.load()
         elif file_extension in [".docx", ".doc"]:
             loader = Docx2txtLoader(file_path)
+            documents = loader.load()
+        elif file_extension == ".txt":
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            documents = [Document(page_content=content, metadata={"source": file_path})]
         else:
             raise ValueError(f"不支持的文件格式: {file_extension}")
 
-        documents = loader.load()
         return documents
 
     def load_folder(self, folder_path: str = None) -> List[Document]:
@@ -72,7 +77,7 @@ class DocumentLoader:
             raise FileNotFoundError(f"文件夹不存在: {folder}")
 
         all_documents = []
-        supported_extensions = [".pdf", ".docx", ".doc"]
+        supported_extensions = [".pdf", ".docx", ".doc", ".txt"]
 
         for root, dirs, files in os.walk(folder):
             for file in files:

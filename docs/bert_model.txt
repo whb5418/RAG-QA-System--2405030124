@@ -1,0 +1,81 @@
+# BERT预训练模型详解
+
+## 简介
+
+BERT（Bidirectional Encoder Representations from Transformers）是Google在2018年发布的预训练语言模型。它基于Transformer编码器，通过双向预训练学习深层的语言表示。
+
+## BERT的创新点
+
+### 双向上下文理解
+与GPT的单向语言模型不同，BERT采用掩码语言模型（Masked Language Model，MLM）进行预训练，能够同时学习左右上下文。
+
+### 预训练任务
+
+BERT使用两个预训练任务：
+
+1. **掩码语言模型（MLM）**：随机掩盖输入序列中的部分token，模型需要预测被掩盖的token。
+
+2. **下一句预测（Next Sentence Prediction，NSP）**：判断两个句子是否连续。
+
+## BERT模型结构
+
+### 基础架构
+BERT基于Transformer编码器，有两个版本：
+- BERT-base：12层Transformer，768维隐藏层，12个注意力头
+- BERT-large：24层Transformer，1024维隐藏层，16个注意力头
+
+### 输入表示
+BERT的输入由三部分组成：
+- Token嵌入（Token Embeddings）
+- 段落嵌入（Segment Embeddings）
+- 位置嵌入（Position Embeddings）
+
+## 预训练过程
+
+### 数据准备
+BERT使用大规模文本数据进行预训练，包括BooksCorpus（约8亿词）和英文维基百科（约25亿词）。
+
+### 训练目标
+- MLM目标：预测被掩盖的token
+- NSP目标：判断句子对的关系
+
+## 微调过程
+
+BERT采用微调方式适应下游任务：
+
+### 常见任务类型
+1. **句子级任务**：情感分析、文本分类
+2. **句子对任务**：自然语言推理、语义相似度
+3. **序列标注任务**：命名实体识别、词性标注
+4. **问答任务**：阅读理解
+
+### 微调策略
+在预训练模型基础上，针对特定任务添加简单的输出层进行微调。
+
+## BERT的影响
+
+### 打破多项记录
+BERT发布时在11个NLP任务上刷新了SOTA（State of the Art）。
+
+### 开启预训练时代
+BERT的成功证明了预训练语言模型的有效性，引发了预训练模型的研究热潮。
+
+### 衍生模型
+基于BERT衍生出许多改进模型：
+- RoBERTa：优化训练策略
+- ALBERT：参数高效版本
+- DistilBERT：轻量级版本
+- ELECTRA：替换MLM为替换token检测
+
+## 应用场景
+
+BERT已广泛应用于：
+- 搜索引擎（Google搜索）
+- 智能客服
+- 文本分析
+- 机器翻译
+- 问答系统
+
+## 总结
+
+BERT通过双向预训练和微调策略，成为现代NLP的里程碑模型。

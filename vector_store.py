@@ -8,8 +8,8 @@ import os
 import shutil
 from typing import List, Optional
 from langchain_core.documents import Document
-from langchain_ollama import OllamaEmbeddings
 from langchain_chroma import Chroma
+from langchain_huggingface import HuggingFaceEmbeddings
 
 import config
 
@@ -38,10 +38,10 @@ class VectorStoreManager:
     def embeddings(self):
         """延迟初始化嵌入模型"""
         if self._embeddings is None:
-            self._embeddings = OllamaEmbeddings(
-                model=config.EMBED_MODEL,
-                base_url=config.OLLAMA_BASE_URL
+            self._embeddings = HuggingFaceEmbeddings(
+                model_name="all-MiniLM-L6-v2"
             )
+            print("HuggingFace嵌入模型初始化成功")
         return self._embeddings
 
     def create_vectorstore(self, documents: List[Document]) -> Chroma:
@@ -196,7 +196,7 @@ if __name__ == "__main__":
 
     if not stats.get("exists"):
         print("向量数据库不存在，请先构建知识库")
-        return
+        exit(0)
 
     # 测试检索
     query = "什么是自然语言处理？"
