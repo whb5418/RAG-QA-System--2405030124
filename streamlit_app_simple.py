@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 RAG智能问答系统 - Streamlit Web界面（简化版）
-使用简单的文本匹配实现知识库问答
+使用简单的文本匹配实现知识库问答，支持无关问题调用大模型
 """
 import os
 import streamlit as st
+import subprocess
+import re
+import config
 
 # 配置
 DOCS_FOLDER = os.path.join(os.path.dirname(__file__), "docs")
@@ -92,18 +95,48 @@ def search_knowledge_base(query, chunks, top_k=3):
     
     return results[:top_k]
 
+def clean_output(output):
+    """清理Ollama输出中的控制字符"""
+    if isinstance(output, bytes):
+        output = output.decode('utf-8', errors='replace')
+    output = re.sub(r'\x1B\[[0-?]*[ -/]*[@-~]', '', output)
+    output = re.sub(r'\[K', '', output)
+    return output.strip()
+
+def call_llm(query):
+    """调用大模型回答问题"""
+    try:
+        result = subprocess.run(
+            ["ollama", "run", config.LLM_MODEL, query],
+            capture_output=True,
+            timeout=120
+        )
+        
+        if result.returncode == 0:
+            return clean_output(result.stdout)
+        else:
+            return f"大模型调用失败: {clean_output(result.stderr) if result.stderr else '未知错误'}"
+    except subprocess.TimeoutExpired:
+        return "回答超时，请稍后重试"
+    except FileNotFoundError:
+        return "Ollama未安装或未启动，请先安装Ollama"
+
 def get_answer(query):
-    """获取回答"""
+    """获取回答（优先知识库，其次大模型）"""
     chunks = st.session_state.knowledge_chunks
     
     if not chunks:
-        return "⚠️ 知识库未构建，请先构建知识库", "❌ 无知识库"
+        # 知识库未构建，直接调用大模型
+        answer = call_llm(query)
+        return answer, "🤖 大模型直接回答（知识库未构建）"
     
     # 搜索知识库
     results = search_knowledge_base(query, chunks)
     
     if not results:
-        return "文档中未找到相关答案", "❌ 无匹配结果"
+        # 知识库无匹配，调用大模型
+        answer = call_llm(query)
+        return answer, "🤖 大模型直接回答（知识库无匹配）"
     
     # 构建答案
     answer = "根据知识库，相关信息如下：\n\n"
