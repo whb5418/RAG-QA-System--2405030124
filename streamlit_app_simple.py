@@ -86,13 +86,23 @@ def build_knowledge_base():
     return f"知识库构建成功！共存储 {len(all_chunks)} 个文本块"
 
 def search_knowledge_base(query, chunks, top_k=3):
-    """搜索知识库"""
+    """搜索知识库（改进版：支持关键词匹配和相似度评分）"""
     results = []
+    query_words = set(query.lower().replace(' ', ''))
     
     for chunk in chunks:
-        if query in chunk['content']:
-            results.append({"score": 1, "content": chunk["content"], "source": chunk["source"]})
+        chunk_text = chunk['content'].lower()
+        chunk_content = chunk_text.replace(' ', '')
+        
+        score = 0
+        for word in query_words:
+            if word in chunk_content:
+                score += 1
+        
+        if score > 0:
+            results.append({"score": score, "content": chunk["content"], "source": chunk["source"]})
     
+    results.sort(key=lambda x: x['score'], reverse=True)
     return results[:top_k]
 
 def clean_output(output):
@@ -126,19 +136,19 @@ def get_answer(query):
     chunks = st.session_state.knowledge_chunks
     
     if not chunks:
-        # 知识库未构建，直接调用大模型
         answer = call_llm(query)
+        if "Ollama未安装" in answer:
+            return "⚠️ 知识库未构建，且Ollama未安装。请先构建知识库或安装Ollama。", "❌ 无法回答"
         return answer, "🤖 大模型直接回答（知识库未构建）"
     
-    # 搜索知识库
     results = search_knowledge_base(query, chunks)
     
     if not results:
-        # 知识库无匹配，调用大模型
         answer = call_llm(query)
+        if "Ollama未安装" in answer:
+            return f"文档中未找到相关答案。您可以尝试使用更通用的关键词，或安装Ollama后获取大模型回答。当前知识库包含以下主题：{', '.join(set(c['source'].replace('.txt', '') for c in chunks))}", "❌ 知识库无匹配"
         return answer, "🤖 大模型直接回答（知识库无匹配）"
     
-    # 构建答案
     answer = "根据知识库，相关信息如下：\n\n"
     for i, result in enumerate(results):
         answer += f"**来源**: {result['source']}\n\n"
