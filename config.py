@@ -22,7 +22,7 @@ CHUNK_OVERLAP = 200
 
 # Ollama配置
 OLLAMA_BASE_URL = "http://localhost:11434"
-LLM_MODEL = "phi3:mini"
+LLM_MODEL = "deepseek-r1:1.5b"
 EMBED_MODEL = "nomic-embed-text"
 
 # 检索参数
